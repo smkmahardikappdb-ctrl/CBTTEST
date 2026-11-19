@@ -46,8 +46,13 @@ const A = window.A = {
   userKelasFilter(v) { S.userKelas = v; $('user-table').innerHTML = userTable(); icons(); },
   async addUser(ev) {
     ev.preventDefault();
-    const row = { username: $('f-user').value.trim(), password_hash: $('f-pass').value, role: S.userTab, nama: $('f-nama').value.trim(), kelas_id: S.userTab === 'siswa' ? $('f-kls').value : null };
-    await run(async () => { await API.ins('users', row); await refresh(); render(); toast('Pengguna disimpan.'); }); return false;
+    const pw = rndPass();
+    const row = { username: $('f-user').value.trim(), password_hash: pw, role: S.userTab, nama: $('f-nama').value.trim(), kelas_id: S.userTab === 'siswa' ? $('f-kls').value : null };
+    await run(async () => {
+      await API.ins('users', row); await refresh();
+      S.lastImport = [{ nama: row.nama, kelas: row.kelas_id ? kName(row.kelas_id) : '', username: row.username, password: pw, role: row.role }];
+      render(); importDone(S.lastImport, 0);
+    }); return false;
   },
   async changePw(id) {
     const u = byId(S.data.users, id);
