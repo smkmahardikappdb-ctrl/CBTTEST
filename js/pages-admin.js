@@ -49,8 +49,8 @@ function pgUsers() {
     <div class="grid lg:grid-cols-3 gap-5"><div>
       ${card('Tambah ' + (sw ? 'Siswa' : 'Pengawas'), `<form onsubmit="return A.addUser(event)" class="space-y-3">
         <div><label class="lbl">Nama Lengkap</label><input id="f-nama" class="inp" required></div>
-        <div><label class="lbl">Username / ID</label><input id="f-user" class="inp" required autocomplete="off"></div>
-        <div><label class="lbl">Password</label><input id="f-pass" class="inp" required autocomplete="new-password"></div>
+        <div><label class="lbl">${sw ? 'NIS / NISN (jadi username)' : 'Username / ID'}</label><input id="f-user" class="inp" required autocomplete="off"></div>
+        <p class="text-xs text-slate-500">Password dibuat otomatis setelah disimpan, lalu bisa langsung dicetak di kartu.</p>
         ${sw ? `<div><label class="lbl">Kelas</label><select id="f-kls" class="inp" required>${kelasOpts()}</select></div>` : ''}
         <button class="btn btn-p w-full"><i data-lucide="plus" style="width:16px;height:16px"></i> Simpan</button></form>`)}
       ${card('Import Excel', `<p class="text-xs text-slate-500 mb-3">Kolom: <b>nama, nis, kelas</b>. NIS/NISN dipakai sebagai username, password dibuat acak otomatis. NIS yang sudah terdaftar dilewati. Kelas baru dibuat otomatis. Format kolom nis sebagai Teks agar angka 0 di depan tidak hilang.</p>
