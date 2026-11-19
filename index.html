@@ -98,6 +98,9 @@ html,body{background:var(--paper)}
 #cbt-root .text-violet-600{color:var(--acc)!important}
 #cbt-root .text-indigo-600,#cbt-root .text-indigo-700,#cbt-root .text-indigo-900{color:var(--pri2)!important}
 #cbt-root .border-indigo-100,#cbt-root .border-indigo-300{border-color:#bcd5c6!important}
+.nav-sub{margin:.1rem 0 .4rem 1.35rem;padding-left:.5rem;border-left:1px solid var(--line)}
+.nav-sub .nav-btn{padding:.5rem .75rem;font-size:.84rem}
+.nav-car{color:var(--ink3);font-weight:700}
 </style>
 
 <div id="cbt-root">
@@ -499,11 +502,24 @@ const MENUS = {
   pengawas: [['p_jadwal', 'Jadwal & Token', 'key'], ['p_monitor', 'Pantau Peserta', 'activity'], ['p_rekap', 'Rekap Ujian', 'file-text'], ['p_tugas', 'Tugas Saya', 'clipboard-list']],
   siswa: [['s_ujian', 'Ujian Saya', 'calendar-check'], ['s_profil', 'Profil', 'user-cog']]
 };
+const NAV_GROUPS = {
+  admin: [{ n: 'Beranda', ic: 'layout-dashboard', p: ['dashboard'] }, { n: 'Data Master', ic: 'school', p: ['kelas', 'users', 'sesi', 'ruang'] }, { n: 'Ujian', ic: 'calendar-check', p: ['ujian', 'bank', 'monitor', 'rekap'] }, { n: 'Pengaturan', ic: 'settings', p: ['settings'] }],
+  pengawas: [{ n: 'Ujian', ic: 'activity', p: ['p_jadwal', 'p_monitor', 'p_rekap'] }, { n: 'Tugas Saya', ic: 'clipboard-list', p: ['p_tugas'] }]
+};
 const ROLE_LABEL = { admin: 'Administrator', pengawas: 'Pengawas', siswa: 'Peserta' };
 function shell(content) {
   const menus = MENUS[S.role];
-  const nav = menus.map(m => `<button class="nav-btn ${S.page === m[0] ? 'on' : ''}" onclick="A.go('${m[0]}')"><i data-lucide="${m[2]}" style="width:18px;height:18px"></i>${m[1]}</button>`).join('');
-  const bn = menus.map(m => `<button class="bn-btn ${S.page === m[0] ? 'on' : ''}" onclick="A.go('${m[0]}')"><i data-lucide="${m[2]}"></i><span>${m[1]}</span></button>`).join('');
+  const grp = NAV_GROUPS[S.role] || menus.map(m => ({ n: m[1], ic: m[2], p: [m[0]] }));
+  const mi = (id) => menus.find(m => m[0] === id);
+  const isAct = (g) => g.p.includes(S.page);
+  const nav = grp.map(g => {
+    if (g.p.length === 1) { const m = mi(g.p[0]); return `<button class="nav-btn ${isAct(g) ? 'on' : ''}" onclick="A.go('${m[0]}')"><i data-lucide="${m[2]}" style="width:18px;height:18px"></i>${m[1]}</button>`; }
+    const open = (S.navOpen || {})[g.n] !== undefined ? S.navOpen[g.n] : isAct(g);
+    return `<div><button class="nav-btn" onclick="A.navToggle('${g.n}')"><i data-lucide="${g.ic}" style="width:18px;height:18px"></i><span class="flex-1">${g.n}</span><span class="nav-car">${open ? '\u2212' : '+'}</span></button>${open ? `<div class="nav-sub">${g.p.map(id => `<button class="nav-btn ${S.page === id ? 'on' : ''}" onclick="A.go('${id}')">${mi(id)[1]}</button>`).join('')}</div>` : ''}</div>`;
+  }).join('');
+  const bn = grp.map(g => { const one = g.p.length === 1, m = mi(g.p[0]); return `<button class="bn-btn ${isAct(g) ? 'on' : ''}" onclick="A.go('${g.p[0]}')"><i data-lucide="${one ? m[2] : g.ic}"></i><span>${one ? m[1] : g.n}</span></button>`; }).join('');
+  const ag = grp.find(isAct);
+  const chips = ag && ag.p.length > 1 ? `<div class="md:hidden flex gap-2 overflow-x-auto mb-4 bn-scroll">${ag.p.map(id => `<button class="btn btn-sm ${S.page === id ? 'btn-p' : 'btn-g'}" onclick="A.go('${id}')">${mi(id)[1]}</button>`).join('')}</div>` : '';
   const inst = S.installEvt ? `<button class="nav-btn" onclick="A.install()"><i data-lucide="download" style="width:18px;height:18px"></i>Pasang Aplikasi</button>` : '';
   return `<aside class="hidden md:flex flex-col fixed left-0 top-0 bottom-0 w-64 glass-strong p-4 z-20" style="border-radius:0 1.5rem 1.5rem 0">
       <div class="flex items-center gap-3 px-2 py-3 mb-3">${brand(40)}<div class="min-w-0"><div class="font-extrabold text-slate-800 leading-tight truncate">${esc(S.settings.nama_app)}</div><div class="text-[11px] text-slate-500 truncate">${esc(S.settings.nama_sekolah)}</div></div></div>
@@ -515,8 +531,8 @@ function shell(content) {
       <div class="flex items-center gap-2 min-w-0">${brand(32)}<div class="font-extrabold text-slate-800 truncate text-sm">${esc(S.settings.nama_app)}</div></div>
       <div class="flex items-center gap-2">${S.installEvt ? `<button class="btn btn-g btn-sm" onclick="A.install()"><i data-lucide="download" style="width:14px;height:14px"></i></button>` : ''}<button class="btn btn-d btn-sm" onclick="A.logout()"><i data-lucide="log-out" style="width:14px;height:14px"></i></button></div>
     </header>
-    <main class="md:ml-64 p-4 md:p-8 pb-32 md:pb-8 fade-in" id="main">${content}</main>
-    <nav class="md:hidden fixed left-3 right-3 z-30 glass-strong rounded-2xl p-1.5 flex gap-1 overflow-x-auto bn-scroll" style="bottom:calc(12px + env(safe-area-inset-bottom));justify-content:${menus.length < 4 ? 'space-around' : 'flex-start'}">${bn}</nav>`;
+    <main class="md:ml-64 p-4 md:p-8 pb-32 md:pb-8 fade-in" id="main">${chips}${content}</main>
+    <nav class="md:hidden fixed left-3 right-3 z-30 glass-strong rounded-2xl p-1.5 flex gap-1 overflow-x-auto bn-scroll" style="bottom:calc(12px + env(safe-area-inset-bottom));justify-content:${grp.length < 4 ? 'space-around' : 'flex-start'}">${bn}</nav>`;
 }
 const card = (title, inner, extra = '') => `<div class="glass rounded-2xl p-5 md:p-6 mb-5"><div class="flex items-center justify-between gap-3 flex-wrap mb-4"><h3 class="font-bold text-lg text-slate-800">${title}</h3>${extra}</div>${inner}</div>`;
 const pageTitle = (t, sub = '') => `<div class="mb-6"><h2 class="text-2xl md:text-3xl font-extrabold text-slate-800">${t}</h2>${sub ? `<p class="text-sm text-slate-500 mt-1">${sub}</p>` : ''}</div>`;
@@ -732,22 +748,38 @@ function monAlert(m) {
 }
 
 /* ===== Bank Soal (admin) ===== */
-function bankFiltered() { const q = (S.bankQ || '').toLowerCase(); return (S.bank || []).filter(x => (!S.bankMapel || x.mapel === S.bankMapel) && (!q || x.pertanyaan.toLowerCase().includes(q))); }
+const TIPE = { pg: 'Pilihan Ganda', pgk: 'PG Kompleks', bs: 'Benar / Salah', isian: 'Isian Singkat', esai: 'Esai' };
+const tipeOf = (x) => x.tipe || 'pg';
+function bankFiltered() { const q = (S.bankQ || '').toLowerCase(); return (S.bank || []).filter(x => (!S.bankMapel || x.mapel === S.bankMapel) && (!S.bankTipeF || tipeOf(x) === S.bankTipeF) && (!q || x.pertanyaan.toLowerCase().includes(q))); }
+function bankItem(x, key) {
+  const t = tipeOf(x), ks = String(x.kunci || '').split(','), L = 'ABCDE';
+  if (t === 'pg' || t === 'pgk') return (x.opsi || []).map((o, j) => `<div class="text-sm ${key && ks.includes(L[j]) ? 'font-bold text-emerald-700' : 'text-slate-600'}">${L[j]}. ${esc(o)}</div>`).join('');
+  if (t === 'bs') return `<div class="text-sm text-slate-600">${key ? 'Jawaban: <b class="text-emerald-700">' + esc(x.kunci) + '</b>' : 'Benar / Salah'}</div>`;
+  if (t === 'isian') return `<div class="text-sm text-slate-600">${key ? 'Jawaban: <b class="text-emerald-700">' + esc(x.kunci) + '</b>' : 'Isian singkat'}</div>`;
+  return key && x.kunci ? `<div class="text-sm text-slate-600">Pedoman: ${esc(x.kunci)}</div>` : '<div class="text-sm text-slate-400">Jawaban uraian</div>';
+}
 function pgBank() {
   const all = S.bank || [], rows = bankFiltered(), e = S.bankEdit ? all.find(x => x.id === S.bankEdit) : null, mp = [...new Set(all.map(x => x.mapel))].sort();
-  const op = (e && e.opsi) || [];
+  const t = e ? tipeOf(e) : (S.bankTipe || 'pg'), op = (e && e.opsi) || [], ks = e ? String(e.kunci || '').split(',') : [], v = (list) => list.includes(t) ? '' : 'display:none';
+  const opts = (arr, cur) => arr.map(c => `<option value="${c}" ${cur === c ? 'selected' : ''}>${c}</option>`).join('');
   const form = card(e ? 'Ubah Soal' : 'Tambah Soal', `<form onsubmit="return A.bankSave(event)" class="space-y-3">
+    <div><label class="lbl">Tipe soal</label><select id="f-bt" class="inp" onchange="A.bankTipe(this.value)">${Object.keys(TIPE).map(k => `<option value="${k}" ${k === t ? 'selected' : ''}>${TIPE[k]}</option>`).join('')}</select></div>
     <div><label class="lbl">Mata pelajaran</label><input id="f-bm" class="inp" list="dl-mapel" required value="${esc(e ? e.mapel : S.bankMapel || '')}"><datalist id="dl-mapel">${mp.map(m => `<option value="${esc(m)}">`).join('')}</datalist></div>
     <div><label class="lbl">Kelas (boleh kosong)</label><select id="f-bk" class="inp"><option value="">Semua kelas</option>${S.data.kelas.map(k => `<option value="${k.id}" ${e && e.kelas_id === k.id ? 'selected' : ''}>${esc(k.nama_kelas)}</option>`).join('')}</select></div>
     <div><label class="lbl">Pertanyaan</label><textarea id="f-bp" class="inp" rows="4" required>${esc(e ? e.pertanyaan : '')}</textarea></div>
-    ${[0, 1, 2, 3, 4].map(i => `<div><label class="lbl">Pilihan ${'ABCDE'[i]}${i > 1 ? ' (opsional)' : ''}</label><input id="f-bo${i}" class="inp" value="${esc(op[i] || '')}"></div>`).join('')}
-    <div><label class="lbl">Kunci jawaban</label><select id="f-bkunci" class="inp">${[...'ABCDE'].map(c => `<option ${e && e.kunci === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+    <div data-t="pg pgk" style="${v(['pg', 'pgk'])}" class="space-y-3">${[0, 1, 2, 3, 4].map(i => `<div><label class="lbl">Pilihan ${'ABCDE'[i]}${i > 1 ? ' (opsional)' : ''}</label><input id="f-bo${i}" class="inp" value="${esc(op[i] || '')}"></div>`).join('')}</div>
+    <div data-t="pg" style="${v(['pg'])}"><label class="lbl">Kunci jawaban</label><select id="f-kpg" class="inp">${opts([...'ABCDE'], ks[0])}</select></div>
+    <div data-t="pgk" style="${v(['pgk'])}"><label class="lbl">Kunci (centang semua yang benar)</label><div class="flex gap-4 flex-wrap text-sm">${[...'ABCDE'].map(c => `<label><input type="checkbox" class="f-kpgk" value="${c}" ${ks.includes(c) ? 'checked' : ''}> ${c}</label>`).join('')}</div></div>
+    <div data-t="bs" style="${v(['bs'])}"><label class="lbl">Jawaban</label><select id="f-kbs" class="inp">${opts(['Benar', 'Salah'], e && e.kunci)}</select></div>
+    <div data-t="isian" style="${v(['isian'])}"><label class="lbl">Jawaban yang benar</label><input id="f-kis" class="inp" value="${esc(e && t === 'isian' ? e.kunci : '')}"><div class="text-xs text-slate-400 mt-1">Kalau ada beberapa jawaban yang diterima, pisahkan dengan tanda |</div></div>
+    <div data-t="esai" style="${v(['esai'])}"><label class="lbl">Pedoman penilaian (opsional)</label><textarea id="f-kes" class="inp" rows="3">${esc(e && t === 'esai' ? e.kunci : '')}</textarea></div>
+    <div><label class="lbl">Bobot nilai</label><input id="f-bbt" type="number" min="1" class="inp" value="${e ? e.bobot || 1 : 1}"></div>
     <div class="flex gap-2"><button class="btn btn-p">${e ? 'Simpan Perubahan' : 'Simpan Soal'}</button>${e ? '<button type="button" class="btn btn-g" onclick="A.bankCancel()">Batal</button>' : ''}</div></form>`);
-  const list = card(`Daftar Soal (${rows.length})`, `<div class="flex gap-2 flex-wrap mb-4"><select class="inp" style="max-width:220px" onchange="A.bankFilter('m', this.value)"><option value="">Semua mapel</option>${mp.map(m => `<option ${m === S.bankMapel ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select><input class="inp" style="max-width:240px" placeholder="Cari kata di pertanyaan" value="${esc(S.bankQ || '')}" onchange="A.bankFilter('q', this.value)"></div>
-    ${!rows.length ? empty('Belum ada soal.') : rows.map((x, i) => `<div class="border-b border-slate-100 py-3 last:border-0"><div class="flex justify-between gap-3"><div class="text-xs text-slate-400">${i + 1}. ${esc(x.mapel)}${x.kelas_id ? ' / ' + esc(kName(x.kelas_id)) : ''}</div><div class="whitespace-nowrap"><button class="btn btn-g btn-sm" onclick="A.bankEditSet('${x.id}')">Ubah</button> <button class="btn btn-d btn-sm" onclick="A.bankDel('${x.id}')">Hapus</button></div></div>
-      <div class="font-semibold text-slate-800 my-1" style="white-space:pre-wrap">${esc(x.pertanyaan)}</div>${(x.opsi || []).map((o, j) => `<div class="text-sm ${'ABCDE'[j] === x.kunci ? 'font-bold text-emerald-700' : 'text-slate-600'}">${'ABCDE'[j]}. ${esc(o)}</div>`).join('')}</div>`).join('')}`,
+  const list = card(`Daftar Soal (${rows.length})`, `<div class="flex gap-2 flex-wrap mb-4"><select class="inp" style="max-width:200px" onchange="A.bankFilter('m', this.value)"><option value="">Semua mapel</option>${mp.map(m => `<option ${m === S.bankMapel ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select><select class="inp" style="max-width:170px" onchange="A.bankFilter('t', this.value)"><option value="">Semua tipe</option>${Object.keys(TIPE).map(k => `<option value="${k}" ${k === S.bankTipeF ? 'selected' : ''}>${TIPE[k]}</option>`).join('')}</select><input class="inp" style="max-width:220px" placeholder="Cari kata di pertanyaan" value="${esc(S.bankQ || '')}" onchange="A.bankFilter('q', this.value)"></div>
+    ${!rows.length ? empty('Belum ada soal.') : rows.map((x, i) => `<div class="border-b border-slate-100 py-3 last:border-0"><div class="flex justify-between gap-3"><div class="text-xs text-slate-400">${i + 1}. ${esc(x.mapel)}${x.kelas_id ? ' / ' + esc(kName(x.kelas_id)) : ''} &middot; ${TIPE[tipeOf(x)]} &middot; bobot ${x.bobot || 1}</div><div class="whitespace-nowrap"><button class="btn btn-g btn-sm" onclick="A.bankEditSet('${x.id}')">Ubah</button> <button class="btn btn-d btn-sm" onclick="A.bankDel('${x.id}')">Hapus</button></div></div>
+      <div class="font-semibold text-slate-800 my-1" style="white-space:pre-wrap">${esc(x.pertanyaan)}</div>${bankItem(x, true)}</div>`).join('')}`,
     `<div class="flex gap-2 flex-wrap"><button class="btn btn-g btn-sm" onclick="A.bankXlsx()">Excel</button><button class="btn btn-g btn-sm" onclick="A.bankPrint(false)">Cetak soal</button><button class="btn btn-g btn-sm" onclick="A.bankPrint(true)">Cetak + kunci</button></div>`);
-  return pageTitle('Bank Soal', 'Kumpulan soal pilihan ganda per mata pelajaran. Hanya admin yang bisa melihat kunci jawaban.') + `<div class="grid grid-cols-1 lg:grid-cols-3 gap-5"><div>${form}</div><div class="lg:col-span-2">${list}</div></div>`;
+  return pageTitle('Bank Soal', 'Kumpulan soal per mata pelajaran dengan beberapa tipe: pilihan ganda, PG kompleks, benar/salah, isian singkat, dan esai. Hanya admin yang bisa melihat kunci jawaban.') + `<div class="grid grid-cols-1 lg:grid-cols-3 gap-5"><div>${form}</div><div class="lg:col-span-2">${list}</div></div>`;
 }
 function pgMonitor() {
   const l = monList();
@@ -981,7 +1013,8 @@ const A = window.A = {
     try { if (S.role === 'admin') await API.adminLogout(); } catch (e) {}
     S.role = null; S.user = null; S.cred = null; S.loginTab = 'user'; render();
   },
-  go(p) { S.page = p; render(); if (p === 'monitor' || p === 'p_monitor' || p === 'rekap' || p === 'p_rekap') { if (!S.monId) { const l = monList(); const t = todayStr(); const d = l.find(x => x.t === t) || l[0]; if (d) S.monId = d.id; } if (S.monId) { S.mon = null; render(); A.loadMon(true); } } if (p === 'bank') { API.bankList().then(r => { S.bank = r; if (S.page === 'bank') render(); }).catch(e => toast(/bank_soal/.test(e.message) ? 'Tabel bank_soal belum dibuat. Jalankan supabase_bank_soal.sql di Supabase.' : e.message, 'err')); } if (S.role === 'admin' && ['dashboard', 'ujian'].includes(p)) A.reload(true); if (S.role === 'pengawas' && p === 'p_jadwal') { API.getPengawas(S.cred).then(r => { S.pw = r; sync(r.server_now); if (S.page === 'p_jadwal') render(); }).catch(() => {}); } if (S.role === 'siswa' && p === 's_ujian') { API.getExams(S.cred).then(r => { S.sw = r; sync(r.server_now); if (S.page === 's_ujian') render(); }).catch(() => {}); } },
+  navToggle(n) { S.navOpen = S.navOpen || {}; const g = (NAV_GROUPS[S.role] || []).find(x => x.n === n); const cur = S.navOpen[n] !== undefined ? S.navOpen[n] : !!(g && g.p.includes(S.page)); S.navOpen[n] = !cur; render(); },
+  go(p) { S.navOpen = {}; S.page = p; render(); if (p === 'monitor' || p === 'p_monitor' || p === 'rekap' || p === 'p_rekap') { if (!S.monId) { const l = monList(); const t = todayStr(); const d = l.find(x => x.t === t) || l[0]; if (d) S.monId = d.id; } if (S.monId) { S.mon = null; render(); A.loadMon(true); } } if (p === 'bank') { API.bankList().then(r => { S.bank = r; if (S.page === 'bank') render(); }).catch(e => toast(/bank_soal/.test(e.message) ? 'Tabel bank_soal belum dibuat. Jalankan supabase_bank_soal.sql di Supabase.' : e.message, 'err')); } if (S.role === 'admin' && ['dashboard', 'ujian'].includes(p)) A.reload(true); if (S.role === 'pengawas' && p === 'p_jadwal') { API.getPengawas(S.cred).then(r => { S.pw = r; sync(r.server_now); if (S.page === 'p_jadwal') render(); }).catch(() => {}); } if (S.role === 'siswa' && p === 's_ujian') { API.getExams(S.cred).then(r => { S.sw = r; sync(r.server_now); if (S.page === 's_ujian') render(); }).catch(() => {}); } },
   async reload(silent) { const f = async () => { await refresh(); render(); }; if (silent) { try { await f(); } catch (e) {} } else await run(f, 'Menyegarkan...'); },
   install() { const e = S.installEvt; if (!e) return; e.prompt(); e.userChoice.finally(() => { S.installEvt = null; render(); }); },
 
@@ -1160,26 +1193,35 @@ const A = window.A = {
       const mc = $('mon-clock'); if (mc) mc.innerHTML = monClock(); toast(`Waktu ditambah ${m} menit.`);
     }, 'Menyimpan...');
   },
-  bankFilter(k, v) { if (k === 'm') S.bankMapel = v; else S.bankQ = v; render(); },
+  bankFilter(k, v) { if (k === 'm') S.bankMapel = v; else if (k === 't') S.bankTipeF = v; else S.bankQ = v; render(); },
+  bankTipe(v) { S.bankTipe = v; document.querySelectorAll('[data-t]').forEach(el => { el.style.display = el.dataset.t.split(' ').includes(v) ? '' : 'none'; }); },
   bankEditSet(id) { S.bankEdit = id; render(); window.scrollTo(0, 0); },
   bankCancel() { S.bankEdit = null; render(); },
   async bankSave(ev) {
     ev.preventDefault();
-    const opsi = [0, 1, 2, 3, 4].map(i => $('f-bo' + i).value.trim()); while (opsi.length && !opsi[opsi.length - 1]) opsi.pop();
-    if (opsi.length < 2 || opsi.some(x => !x)) { toast('Isi pilihan jawaban berurutan, minimal A dan B.', 'warn'); return false; }
-    const kunci = $('f-bkunci').value; if ('ABCDE'.indexOf(kunci) >= opsi.length) { toast('Kunci jawaban menunjuk pilihan yang kosong.', 'warn'); return false; }
-    const row = { mapel: $('f-bm').value.trim(), kelas_id: $('f-bk').value || null, pertanyaan: $('f-bp').value.trim(), opsi, kunci };
+    const t = $('f-bt').value; let opsi = [], kunci = '';
+    if (t === 'pg' || t === 'pgk') {
+      opsi = [0, 1, 2, 3, 4].map(i => $('f-bo' + i).value.trim()); while (opsi.length && !opsi[opsi.length - 1]) opsi.pop();
+      if (opsi.length < 2 || opsi.some(x => !x)) { toast('Isi pilihan jawaban berurutan, minimal A dan B.', 'warn'); return false; }
+      kunci = t === 'pg' ? $('f-kpg').value : [...document.querySelectorAll('.f-kpgk:checked')].map(c => c.value).join(',');
+      if (!kunci) { toast('Pilih minimal satu kunci jawaban.', 'warn'); return false; }
+      if (kunci.split(',').some(c => 'ABCDE'.indexOf(c) >= opsi.length)) { toast('Kunci jawaban menunjuk pilihan yang kosong.', 'warn'); return false; }
+    } else if (t === 'bs') kunci = $('f-kbs').value;
+    else if (t === 'isian') { kunci = $('f-kis').value.trim(); if (!kunci) { toast('Isi jawaban yang benar.', 'warn'); return false; } }
+    else kunci = $('f-kes').value.trim();
+    const row = { tipe: t, mapel: $('f-bm').value.trim(), kelas_id: $('f-bk').value || null, pertanyaan: $('f-bp').value.trim(), opsi, kunci, bobot: Math.max(1, parseInt($('f-bbt').value, 10) || 1) };
     await run(async () => { if (S.bankEdit) await API.upd('bank_soal', S.bankEdit, row); else await API.ins('bank_soal', row); S.bank = await API.bankList(); S.bankEdit = null; render(); toast('Soal disimpan.'); });
     return false;
   },
   async bankDel(id) { if (!confirm('Hapus soal ini?')) return; await run(async () => { await API.del('bank_soal', id); S.bank = await API.bankList(); render(); toast('Soal dihapus.'); }); },
   bankXlsx() {
-    const rows = [['No', 'Mapel', 'Kelas', 'Pertanyaan', 'A', 'B', 'C', 'D', 'E', 'Kunci']].concat(bankFiltered().map((x, i) => [i + 1, x.mapel, x.kelas_id ? kName(x.kelas_id) : '', x.pertanyaan, ...[0, 1, 2, 3, 4].map(j => (x.opsi || [])[j] || ''), x.kunci]));
+    const rows = [['No', 'Tipe', 'Mapel', 'Kelas', 'Pertanyaan', 'A', 'B', 'C', 'D', 'E', 'Kunci / Pedoman', 'Bobot']].concat(bankFiltered().map((x, i) => [i + 1, TIPE[tipeOf(x)], x.mapel, x.kelas_id ? kName(x.kelas_id) : '', x.pertanyaan, ...[0, 1, 2, 3, 4].map(j => (x.opsi || [])[j] || ''), x.kunci || '', x.bobot || 1]));
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Bank Soal'); XLSX.writeFile(wb, 'bank-soal.xlsx');
   },
   bankPrint(key) {
     const r = bankFiltered(); if (!r.length) { toast('Tidak ada soal untuk dicetak.', 'warn'); return; }
-    printDoc('Bank Soal', `<div class="kop"><h2>${key ? 'NASKAH SOAL DAN KUNCI JAWABAN' : 'NASKAH SOAL'}</h2><div>${esc(S.bankMapel || 'Semua mata pelajaran')}</div></div>${r.map((x, i) => `<div style="margin-bottom:12px;page-break-inside:avoid"><div style="white-space:pre-wrap">${i + 1}. ${esc(x.pertanyaan)}</div>${(x.opsi || []).map((o, j) => `<div style="margin-left:18px">${'ABCDE'[j]}. ${esc(o)}</div>`).join('')}${key ? `<div style="margin-left:18px"><b>Kunci: ${x.kunci}</b></div>` : ''}</div>`).join('')}`);
+    const sect = Object.keys(TIPE).map(k => ({ k, l: r.filter(x => tipeOf(x) === k) })).filter(g => g.l.length); let n = 0;
+    printDoc('Bank Soal', `<div class="kop"><h2>${key ? 'NASKAH SOAL DAN KUNCI JAWABAN' : 'NASKAH SOAL'}</h2><div>${esc(S.bankMapel || 'Semua mata pelajaran')}</div></div>${sect.map((g, gi) => `<h3 style="margin:14px 0 6px">${'ABCDE'[gi]}. ${TIPE[g.k]}</h3>${g.l.map(x => `<div style="margin-bottom:12px;page-break-inside:avoid"><div style="white-space:pre-wrap">${++n}. ${esc(x.pertanyaan)} <small>(bobot ${x.bobot || 1})</small></div><div style="margin-left:18px">${bankItem(x, key).replace(/class="[^"]*"/g, '')}${!key && g.k === 'esai' ? '<div style="border-bottom:1px solid #999;height:60px"></div>' : ''}</div></div>`).join('')}`).join('')}`);
   },
   monSelect(id) { S.monId = id; S.mon = null; S.monPrev = null; const mc = $('mon-clock'); if (mc) mc.innerHTML = monClock(); const el = $('mon-table'); if (el) el.innerHTML = monTable(); const rb = $('rekap-body'); if (rb) rb.innerHTML = rekapBody(); A.loadMon(); },
   async loadMon(silent) {
